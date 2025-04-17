@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Bee",
+    "slug": "cocuk-egitim",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/bee.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/bee.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cocukegitim.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Bu uygulama, fotoğraf çekmek ve görüntülü sohbet için kameraya erişim gerektirir."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.cocukegitim.app",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-updates",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Bu uygulama, fotoğraf çekmek ve görüntülü sohbet için kameraya erişim gerektirir."
+        }
+      ]
+    ],
+    "scheme": "cocuk-egitim",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/your-project-id"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
+  }
+}
