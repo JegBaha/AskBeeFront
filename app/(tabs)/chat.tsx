@@ -17,8 +17,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
+
+const SERVER_URL = 'http://192.168.1.101:5000';
 
 export default function ChatScreen() {
   const { fromCamera, animalName, animalImage } = useLocalSearchParams<{
@@ -28,19 +31,16 @@ export default function ChatScreen() {
   }>();
   const router = useRouter();
 
-  
   useEffect(() => {
     if (!animalName) {
       router.replace('/characterSelection');
     }
   }, [animalName, router]);
 
- 
   if (!animalName) {
     return null;
   }
 
-  
   const chatbotCharacter = {
     name: animalName || 'Arı',
     image: animalImage ? JSON.parse(animalImage) : require('/assets/bee.png'),
@@ -52,25 +52,29 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [isCameraActive, setIsCameraActive] = useState(Platform.OS !== 'web');
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [hasAudioPermission, setHasAudioPermission] = useState<boolean | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [cameraKey, setCameraKey] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false); // Yeni durum: Backend işleniyor
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const cameraRef = useRef<any>(null);
+  const cameraRef = useRef<Camera>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const cameraStatus = await Camera.requestCameraPermissionsAsync();
         const audioStatus = await Audio.requestPermissionsAsync();
-        setHasPermission(cameraStatus.status === 'granted' && audioStatus.status === 'granted');
-        if (cameraStatus.status !== 'granted' || audioStatus.status !== 'granted') {
-          console.log('İzinler eksik:', { camera: cameraStatus.status, audio: audioStatus.status });
-        }
+        setHasCameraPermission(cameraStatus.status === 'granted');
+        setHasAudioPermission(audioStatus.status === 'granted');
+        console.log('Permissions:', { camera: cameraStatus.status, audio: audioStatus.status });
       } catch (error) {
-        console.error('İzin alınırken hata:', error);
-        setHasPermission(false);
+        console.error('Permission error:', error);
+        setHasCameraPermission(false);
+        setHasAudioPermission(false);
       }
     })();
   }, []);
@@ -90,6 +94,13 @@ export default function ChatScreen() {
     }
   }, [fromCamera]);
 
+  useEffect(() => {
+    if (!isCameraActive) {
+      setIsCameraReady(false);
+      setCameraKey(prev => prev + 1);
+    }
+  }, [isCameraActive]);
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -98,7 +109,7 @@ export default function ChatScreen() {
     setInput('');
 
     try {
-      const response = await fetch('http://192.168.192.162:5000/chat', {
+      const response = await fetch(`${SERVER_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,20 +125,20 @@ export default function ChatScreen() {
         throw new Error(`Sunucu hatası: ${response.status}`);
       }
     } catch (error) {
-      console.error('API isteği sırasında hata:', error);
+      console.error('Text API error:', error);
+      Alert.alert('Hata', 'Sunucuya ulaşılamadı: ' + SERVER_URL);
       const errorResponse = { text: 'Üzgünüm, bir hata oluştu.', isUser: false };
       setMessages(prev => [...prev, errorResponse]);
     }
   };
 
   const startRecording = async () => {
-    try {
-      const hasPermission = await Audio.requestPermissionsAsync();
-      if (hasPermission.status !== 'granted') {
-        Alert.alert('Hata', 'Mikrofon izni gerekli!');
-        return;
-      }
+    if (!hasAudioPermission) {
+      Alert.alert('Hata', 'Mikrofon izni gerekli!');
+      return;
+    }
 
+    try {
       console.log('Starting recording...');
       const newRecording = new Audio.Recording();
       await newRecording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
@@ -136,12 +147,13 @@ export default function ChatScreen() {
       setIsRecording(true);
       console.log('Recording started');
     } catch (error) {
-      console.error('Kayıt başlatma hatası:', error);
+      console.error('Recording start error:', error);
       Alert.alert('Hata', 'Kayıt başlatılamadı.');
     }
   };
 
   const stopRecording = async () => {
+    setIsProcessing(true); // Yükleniyor durumu başlat
     try {
       console.log('Stopping recording...');
       if (!recording) {
@@ -153,7 +165,6 @@ export default function ChatScreen() {
       const uri = recording.getURI();
       console.log('Recorded file URI:', uri);
 
-     
       if (Platform.OS !== 'web') {
         const fileInfo = await FileSystem.getInfoAsync(uri);
         if (!fileInfo.exists) {
@@ -162,22 +173,17 @@ export default function ChatScreen() {
           return;
         }
         console.log('File info:', fileInfo);
-      } else {
-        console.log('Skipping file check on web');
       }
 
-    
       const formData = new FormData();
       formData.append('audio', {
-        uri: uri,
+        uri,
         name: 'recording.m4a',
         type: 'audio/m4a',
       });
       console.log('FormData prepared for upload');
 
-     
-      console.log('Sending audio to backend...');
-      const response = await fetch('http://192.168.64.162:5000/transcribe', {
+      const response = await fetch(`${SERVER_URL}/transcribe`, {
         method: 'POST',
         body: formData,
       });
@@ -200,10 +206,10 @@ export default function ChatScreen() {
         );
       }
     } catch (error) {
-      console.error('Kayıt durdurma hatası:', error);
+      console.error('Recording stop error:', error);
       Alert.alert(
         'Bağlantı hatası',
-        'Sunucuya bağlanılamadı: ' + error.message,
+        'Sunucuya ulaşılamadı: ' + SERVER_URL,
         [
           { text: 'İptal', style: 'cancel' },
           { text: 'Tekrar Dene', onPress: startRecording },
@@ -212,10 +218,12 @@ export default function ChatScreen() {
     } finally {
       setRecording(null);
       setIsRecording(false);
+      setIsProcessing(false); // Yükleniyor durumu bitir
     }
   };
 
   const handleMicrophoneToggle = () => {
+    if (isProcessing) return; // Yükleniyorsa tıklamayı engelle
     if (isRecording) {
       stopRecording();
     } else {
@@ -223,32 +231,117 @@ export default function ChatScreen() {
     }
   };
 
-  const toggleCamera = () => {
-    setIsCameraActive(prev => !prev);
+  const handleCameraAction = async () => {
+    console.log('Camera action triggered:', {
+      isCameraActive,
+      isCameraReady,
+      cameraRef: cameraRef.current,
+      hasCameraPermission,
+      cameraKey
+    });
+
+    if (!hasCameraPermission) {
+      Alert.alert('Hata', 'Kamera izni gerekli! Lütfen cihaz ayarlarından izni verin.');
+      return;
+    }
+
+    if (!isCameraActive) {
+      setIsCameraActive(true);
+      console.log('Camera activated, waiting for readiness...');
+      return;
+    }
+
+    if (!isCameraReady || !cameraRef.current) {
+      Alert.alert(
+        'Hata',
+        'Kamera hazırlanıyor, lütfen birkaç saniye bekleyin.',
+        [
+          { text: 'Tamam', style: 'cancel' },
+          {
+            text: 'Tekrar Dene',
+            onPress: () => {
+              setIsCameraActive(false);
+              setTimeout(() => setIsCameraActive(true), 100);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+      console.log('Photo captured:', photo.uri);
+
+      const userMessage = { text: 'Fotoğraf gönderildi!', isUser: true, image: photo.uri };
+      setMessages(prev => [...prev, userMessage]);
+
+      const formData = new FormData();
+      formData.append('image', {
+        uri: photo.uri,
+        name: 'photo.jpg',
+        type: 'image/jpeg',
+      });
+      console.log('FormData prepared:', formData);
+
+      const response = await fetch(`${SERVER_URL}/camera`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log('Server response:', data);
+
+      if (response.ok && data.response) {
+        const aiResponse = { text: data.response, isUser: false };
+        setMessages(prev => [...prev, aiResponse]);
+      } else {
+        throw new Error(data.error || 'Sunucu hatası');
+      }
+    } catch (error) {
+      console.error('Photo capture error:', error);
+      Alert.alert(
+        'Hata',
+        'Fotoğraf gönderilemedi. Sunucu bağlantısını veya kamera izinlerini kontrol edin: ' + SERVER_URL
+      );
+      const errorResponse = { text: 'Üzgünüm, fotoğraf işlenemedi.', isUser: false };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsCameraActive(false);
+      setIsCameraReady(false);
+      setCameraKey(prev => prev + 1);
+    }
   };
 
   const filteredMessages = messages.filter(message =>
     message.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (hasPermission === null) {
+  if (hasCameraPermission === null || hasAudioPermission === null) {
     return (
-      <View style={styles.container}>
-        <Text>Kamera ve mikrofon izinleri yükleniyor...</Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Kamera ve mikrofon izinleri yükleniyor...</Text>
       </View>
     );
   }
-  if (hasPermission === false) {
+  if (hasCameraPermission === false || hasAudioPermission === false) {
     return (
-      <View style={styles.container}>
-        <Text>Kamera veya mikrofona erişim izni yok. Lütfen cihaz ayarlarından izni verin.</Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Kamera veya mikrofona erişim izni yok. Lütfen cihaz ayarlarından izni verin.</Text>
       </View>
     );
   }
 
+  console.log('Camera component:', Camera);
+
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['#E0F7FA', '#F0F4F8']}
+      style={styles.container}>
       <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </Pressable>
         <View style={styles.headerContent}>
           {showSearch ? (
             <View style={styles.searchContainer}>
@@ -258,6 +351,7 @@ export default function ChatScreen() {
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus
+                placeholderTextColor="#FFF"
               />
               <Pressable
                 onPress={() => {
@@ -265,14 +359,14 @@ export default function ChatScreen() {
                   setSearchQuery('');
                 }}
               >
-                <Ionicons name="close" size={24} color="#636E72" />
+                <Ionicons name="close" size={24} color="#FFF" />
               </Pressable>
             </View>
           ) : (
             <>
-              <Text style={styles.headerTitle}>{chatbotCharacter.name}</Text>
+              <Text style={styles.headerTitle}>{chatbotCharacter.name} ile Sohbet</Text>
               <Pressable onPress={() => setShowSearch(true)}>
-                <Ionicons name="search" size={24} color="#636E72" />
+                <Ionicons name="search" size={24} color="#FFF" />
               </Pressable>
             </>
           )}
@@ -283,20 +377,37 @@ export default function ChatScreen() {
         <View style={styles.mainVideo}>
           <Image source={chatbotCharacter.image} style={styles.botVideo} />
         </View>
-        {hasPermission && isCameraActive && Platform.OS !== 'web' && Platform.OS !== 'android' && (
+        {hasCameraPermission && isCameraActive && Platform.OS !== 'web' && typeof Camera === 'function' ? (
           <View style={styles.userVideo}>
             <Camera
+              key={cameraKey}
               ref={cameraRef}
               style={styles.camera}
               type="front"
+              onCameraReady={() => {
+                console.log('Camera is ready, ref:', cameraRef.current);
+                setIsCameraReady(true);
+              }}
+              onMountError={(error) => {
+                console.error('Camera mount error:', error);
+                Alert.alert('Hata', 'Kamera başlatılamadı: ' + error.message);
+                setIsCameraActive(false);
+                setIsCameraReady(false);
+              }}
             />
           </View>
+        ) : (
+          isCameraActive && (
+            <View style={styles.userVideo}>
+              <Text style={styles.errorText}>Kamera yüklenemedi. Lütfen uygulamayı yeniden başlatın.</Text>
+            </View>
+          )
         )}
-        <Pressable onPress={toggleCamera} style={styles.cameraToggleButton}>
+        <Pressable onPress={handleCameraAction} style={styles.cameraButton}>
           <Ionicons
-            name={isCameraActive ? 'videocam-off' : 'videocam'}
+            name={isCameraActive ? 'camera-outline' : 'camera'}
             size={24}
-            color="#FFFFFF"
+            color="#FFF"
           />
         </Pressable>
       </View>
@@ -304,7 +415,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.chatContainer}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 140 : 100} 
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 140 : 100}
       >
         <ScrollView
           ref={scrollViewRef}
@@ -321,7 +432,11 @@ export default function ChatScreen() {
               ]}
             >
               {message.image && (
-                <Image source={{ uri: message.image }} style={styles.messageImage} />
+                <Image
+                  source={{ uri: message.image }}
+                  style={styles.messageImage}
+                  onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
+                />
               )}
               <Text style={styles.messageText}>{message.text}</Text>
             </View>
@@ -329,11 +444,19 @@ export default function ChatScreen() {
         </ScrollView>
 
         <View style={styles.inputContainer}>
-          <Pressable onPress={handleMicrophoneToggle} style={styles.microphoneButton}>
+          <Pressable
+            onPress={handleMicrophoneToggle}
+            style={[
+              styles.microphoneButton,
+              isRecording && styles.microphoneButtonRecording,
+              isProcessing && styles.microphoneButtonProcessing,
+            ]}
+            disabled={isProcessing}
+          >
             <Ionicons
-              name={isRecording ? "stop" : "mic"}
+              name={isProcessing ? 'refresh-circle' : isRecording ? 'stop-circle' : 'mic'}
               size={24}
-              color={isRecording ? "#4A90E2" : "#999"}
+              color="#FFF"
             />
           </Pressable>
           <TextInput
@@ -345,42 +468,66 @@ export default function ChatScreen() {
             multiline
           />
           <Pressable onPress={handleSend} style={styles.sendButton}>
-            <Ionicons name="send" size={24} color="#FFFFFF" />
+            <Ionicons name="send" size={24} color="#FFF" />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
     paddingBottom: 76,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F4F8',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#2D3436',
+    textAlign: 'center',
+    padding: 20,
   },
   header: {
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    paddingTop: 50,
+    backgroundColor: '#4A90E2',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
   },
   headerContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginHorizontal: 40,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D3436',
+    color: '#FFF',
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
     paddingHorizontal: 16,
     height: 40,
@@ -388,13 +535,16 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
+    color: '#FFF',
     marginRight: 8,
   },
   videoContainer: {
     width: '100%',
-    height: height * 0.4,
-    backgroundColor: '#000',
+    height: height * 0.35,
+    backgroundColor: '#2D3436',
     position: 'relative',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   mainVideo: {
     flex: 1,
@@ -405,37 +555,64 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
+    borderRadius: 20,
   },
   userVideo: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 120,
-    height: 160,
+    width: 100,
+    height: 140,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#FFD700',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   camera: {
     flex: 1,
   },
+  errorText: {
+    color: '#FFF',
+    textAlign: 'center',
+    padding: 10,
+    fontSize: 14,
+  },
   microphoneButton: {
     width: 44,
     height: 44,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
-  cameraToggleButton: {
+  microphoneButtonRecording: {
+    backgroundColor: '#D81B60',
+  },
+  microphoneButtonProcessing: {
+    backgroundColor: '#FFD700',
+  },
+  cameraButton: {
     position: 'absolute',
     bottom: 20,
     left: 20,
-    backgroundColor: '#4A90E2',
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chatContainer: {
     flex: 1,
@@ -445,21 +622,26 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   messagesContent: {
-    paddingBottom: 16, 
+    paddingBottom: 16,
   },
   messageBubble: {
     maxWidth: '80%',
     padding: 12,
     borderRadius: 20,
-    marginBottom: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   userBubble: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#4A90E2',
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFF',
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
@@ -469,29 +651,36 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   messageImage: {
-    width: 200,
-    height: 200,
+    width: 180,
+    height: 180,
     borderRadius: 10,
     marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderTopWidth: 1,
-    borderTopColor: '#EEE',
+    borderTopColor: '#E0E0E0',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F4F8',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     marginRight: 8,
     fontSize: 16,
     maxHeight: 100,
     color: '#2D3436',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   sendButton: {
     width: 44,
@@ -501,4 +690,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+}); 

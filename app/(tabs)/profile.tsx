@@ -11,13 +11,13 @@ const animals = [
   {
     id: 'rabbit',
     name: 'Tavşan',
-    image: './assets/rabbit.png',
+    image: '/assets/rabbit.png',
     defaultSound: 'https://example.com/rabbit.mp3',
   },
   {
     id: 'bee',
     name: 'Arı',
-    image: './assets/bee.png',
+    image: '/assets/bee.png',
     defaultSound: 'https://example.com/bee.mp3',
   },
   {
@@ -47,7 +47,6 @@ export default function ProfileScreen() {
   const [selectedSound, setSelectedSound] = useState({});
   const [avatarImage, setAvatarImage] = useState(null);
 
-  // Load avatarImage from AsyncStorage on mount
   useEffect(() => {
     const loadAvatar = async () => {
       try {
@@ -86,7 +85,6 @@ export default function ProfileScreen() {
 
       if (!result.canceled) {
         let uri = result.assets[0].uri;
-        // Normalize URI for cross-platform compatibility
         if (Platform.OS === 'android' && !uri.startsWith('file://')) {
           uri = `file://${uri}`;
         }
@@ -188,10 +186,13 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profil 👤</Text>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Profilim</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
           <Pressable onPress={pickAvatarImage} style={styles.avatarContainer}>
             {avatarImage ? (
@@ -201,61 +202,67 @@ export default function ProfileScreen() {
                 onError={(e) => console.log('Profile: Image load error:', e.nativeEvent.error)}
               />
             ) : (
-              <Ionicons name="happy" size={60} color="#FF6B6B" />
+              <Ionicons name="person-circle" size={80} color="#4A90E2" />
             )}
             <View style={styles.editIcon}>
-              <Ionicons name="camera" size={20} color="#FFFFFF" />
+              <Ionicons name="camera" size={20} color="#FFF" />
             </View>
           </Pressable>
-          
+
           {isEditing ? (
             <View style={styles.editNameContainer}>
               <TextInput
                 style={styles.nameInput}
                 value={newName}
                 onChangeText={setNewName}
-                placeholder="İsminizi girin"
+                placeholder="İsmini gir"
+                placeholderTextColor="#999"
               />
               <Pressable style={styles.saveButton} onPress={() => {
                 setUserName(newName);
                 setIsEditing(false);
               }}>
+                <Ionicons name="checkmark" size={20} color="#FFF" />
                 <Text style={styles.saveButtonText}>Kaydet</Text>
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setIsEditing(true)}>
-              <Text style={styles.profileName}>{userName} ✏️</Text>
+            <Pressable onPress={() => setIsEditing(true)} style={styles.nameContainer}>
+              <Text style={styles.profileName}>{userName}</Text>
+              <Ionicons name="pencil" size={20} color="#4A90E2" />
             </Pressable>
           )}
-          
-          <Text style={styles.levelText}>Seviye 1 🏆</Text>
+
+          <Text style={styles.levelText}>Seviye 1 <Ionicons name="star" size={18} color="#FFD700" /></Text>
 
           <Pressable
             style={styles.characterButton}
             onPress={() => setShowCharacterModal(true)}>
-            <Text style={styles.characterButtonText}>Karakteri Düzenle 🐾</Text>
+            <Ionicons name="paw" size={20} color="#FFF" />
+            <Text style={styles.characterButtonText}>Karakterini Seç</Text>
           </Pressable>
-          
+
           <View style={styles.statsContainer}>
-            <Text style={styles.statsTitle}>Bugünkü İstatistikler 📊</Text>
+            <Text style={styles.statsTitle}>Bugünkü Maceraların</Text>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Öğrenme Süresi:</Text>
-              <Text style={styles.statValue}>0 dakika 📚</Text>
+              <Ionicons name="book" size={20} color="#4A90E2" />
+              <Text style={styles.statLabel}>Öğrenme:</Text>
+              <Text style={styles.statValue}>0 dakika</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Sohbet Süresi:</Text>
-              <Text style={styles.statValue}>0 dakika 💭</Text>
+              <Ionicons name="chatbubble" size={20} color="#4A90E2" />
+              <Text style={styles.statLabel}>Sohbet:</Text>
+              <Text style={styles.statValue}>0 dakika</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Keşif Süresi:</Text>
-              <Text style={styles.statValue}>0 dakika 🔍</Text>
+              <Ionicons name="compass" size={20} color="#4A90E2" />
+              <Text style={styles.statLabel}>Keşif:</Text>
+              <Text style={styles.statValue}>0 dakika</Text>
             </View>
           </View>
         </View>
       </ScrollView>
 
-      {/* Character Selection Modal */}
       <Modal
         visible={showCharacterModal}
         animationType="slide"
@@ -264,11 +271,11 @@ export default function ProfileScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Karakterini Seç</Text>
+              <Text style={styles.modalTitle}>Kankanı Seç!</Text>
               <Pressable
                 style={styles.closeButton}
                 onPress={() => setShowCharacterModal(false)}>
-                <Ionicons name="close" size={24} color="#636E72" />
+                <Ionicons name="close" size={24} color="#FFF" />
               </Pressable>
             </View>
 
@@ -291,7 +298,6 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Sound Selection Modal */}
       <Modal
         visible={showSoundModal}
         animationType="slide"
@@ -300,13 +306,11 @@ export default function ProfileScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedAnimal?.name} Sesi
-              </Text>
+              <Text style={styles.modalTitle}>{selectedAnimal?.name} için Ses</Text>
               <Pressable
                 style={styles.closeButton}
                 onPress={() => setShowSoundModal(false)}>
-                <Ionicons name="close" size={24} color="#636E72" />
+                <Ionicons name="close" size={24} color="#FFF" />
               </Pressable>
             </View>
 
@@ -315,7 +319,7 @@ export default function ProfileScreen() {
                 style={styles.soundOption}
                 onPress={useDefaultSound}>
                 <Ionicons name="musical-note" size={24} color="#4A90E2" />
-                <Text style={styles.soundOptionText}>Varsayılan Sesi Kullan</Text>
+                <Text style={styles.soundOptionText}>Varsayılan Ses</Text>
               </Pressable>
 
               <Pressable
@@ -329,12 +333,12 @@ export default function ProfileScreen() {
                 style={[styles.soundOption, isRecording && styles.recordingOption]}
                 onPress={isRecording ? stopRecording : startRecording}>
                 <Ionicons
-                  name={isRecording ? "stop" : "mic"}
+                  name={isRecording ? "stop-circle" : "mic"}
                   size={24}
                   color={isRecording ? "#FF6B6B" : "#4A90E2"}
                 />
                 <Text style={styles.soundOptionText}>
-                  {isRecording ? 'Kaydı Durdur' : 'Kendi Sesini Kaydet'}
+                  {isRecording ? 'Kaydı Bitir' : 'Ses Kaydet'}
                 </Text>
               </Pressable>
 
@@ -342,7 +346,7 @@ export default function ProfileScreen() {
                 <Pressable
                   style={styles.playButton}
                   onPress={() => playSound(selectedSound[selectedAnimal.id].uri)}>
-                  <Ionicons name="play" size={24} color="#FFFFFF" />
+                  <Ionicons name="play" size={24} color="#FFF" />
                   <Text style={styles.playButtonText}>Sesi Çal</Text>
                 </Pressable>
               )}
@@ -357,27 +361,31 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F0F4F8',
   },
   header: {
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
+    paddingTop: 50,
+    backgroundColor: '#4A90E2',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
   },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+  },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#2D3436',
+    color: '#FFF',
     textAlign: 'center',
   },
   content: {
@@ -385,28 +393,27 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   profileCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   avatarContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#FFE5E5',
+    backgroundColor: '#E0F7FA',
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
     marginBottom: 16,
     position: 'relative',
+    borderWidth: 3,
+    borderColor: '#4A90E2',
   },
   avatarImage: {
     width: 120,
@@ -417,35 +424,111 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    padding: 4,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 15,
+    padding: 6,
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2D3436',
-    textAlign: 'center',
+    marginRight: 8,
+  },
+  editNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
+  },
+  nameInput: {
+    backgroundColor: '#F0F4F8',
+    borderRadius: 12,
+    padding: 10,
+    fontSize: 18,
+    color: '#2D3436',
+    flex: 1,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  saveButton: {
+    backgroundColor: '#4A90E2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  saveButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 6,
   },
   levelText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#388E3C',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   characterButton: {
-    backgroundColor: '#E3F2FD',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#FF6B6B',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   characterButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4A90E2',
+    color: '#FFF',
+    marginLeft: 8,
+  },
+  statsContainer: {
+    backgroundColor: '#F0F4F8',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  statLabel: {
+    fontSize: 16,
+    color: '#636E72',
+    flex: 1,
+    marginLeft: 8,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D3436',
   },
   modalContainer: {
     flex: 1,
@@ -453,7 +536,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -466,7 +549,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#2D3436',
   },
@@ -474,7 +557,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#FF6B6B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -486,17 +569,24 @@ const styles = StyleSheet.create({
   },
   animalCard: {
     width: '48%',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#E0F7FA',
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   animalImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
     marginBottom: 8,
+    borderWidth: 2,
+    borderColor: '#4A90E2',
   },
   animalName: {
     fontSize: 14,
@@ -509,7 +599,7 @@ const styles = StyleSheet.create({
   soundOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#F0F4F8',
     padding: 16,
     borderRadius: 12,
     gap: 12,
@@ -535,58 +625,6 @@ const styles = StyleSheet.create({
   playButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  statsContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 24,
-  },
-  statsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3436',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  statItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 16,
-    color: '#636E72',
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2D3436',
-  },
-  editNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  nameInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 8,
-    fontSize: 20,
-    marginRight: 8,
-    minWidth: 150,
-  },
-  saveButton: {
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: '#FFF',
   },
 });

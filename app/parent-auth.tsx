@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View, Text, Pressable } from 'react-native';
+import { StyleSheet, TextInput, View, Text, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ParentAuthScreen() {
   const [pin, setPin] = useState('');
@@ -18,20 +19,27 @@ export default function ParentAuthScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={['#E0F7FA', '#F0F4F8']} style={styles.container}>
       <View style={styles.header}>
+        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>Ebeveyn Girişi</Text>
         <Pressable
           style={styles.backButton}
           onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#2D3436" />
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Ebeveyn Girişi</Text>
       </View>
 
       <View style={styles.content}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="lock-closed" size={48} color="#FFF" />
+        </View>
+
         <Text style={styles.title}>PIN Kodunu Girin</Text>
-        <Text style={styles.subtitle}>Ebeveyn paneline erişmek için PIN kodunu girin</Text>
-        
+        <Text style={styles.subtitle}>
+          Ebeveyn paneline erişmek için 4 haneli PIN kodunuzu girin
+        </Text>
+
         <TextInput
           style={styles.input}
           value={pin}
@@ -40,126 +48,162 @@ export default function ParentAuthScreen() {
           keyboardType="numeric"
           secureTextEntry
           maxLength={4}
+          autoFocus
         />
-        
+
         {error ? (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={20} color="#FF6B6B" />
+            <Ionicons name="alert-circle" size={20} color="#FFF" />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
-        
+
         <Pressable
-          style={[styles.button, !pin && styles.buttonDisabled]}
+          style={({ pressed }) => [
+            styles.button,
+            !pin && styles.buttonDisabled,
+            pressed && pin && styles.buttonPressed,
+          ]}
           onPress={handleSubmit}
           disabled={!pin}>
           <Text style={styles.buttonText}>Giriş Yap</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          <Ionicons name="arrow-forward" size={20} color="#FFF" />
         </Pressable>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: 48,
+    backgroundColor: '#4A90E2',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
     elevation: 5,
+  },
+  headerSpacer: {
+    width: 40,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#2D3436',
+    color: '#FFF',
+    textAlign: 'center',
+    flex: 1,
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#2D3436',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
     color: '#636E72',
     textAlign: 'center',
-    marginBottom: 32,
+    lineHeight: 24,
+    marginBottom: 28,
+    paddingHorizontal: 16,
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    width: '100%',
-    maxWidth: 280,
-    height: 60,
+    backgroundColor: '#FFF',
+    width: '80%',
+    maxWidth: 300,
+    height: 56,
     borderRadius: 16,
     fontSize: 24,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   errorText: {
     color: '#FF6B6B',
-    marginLeft: 8,
     fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
   button: {
     backgroundColor: '#4A90E2',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     borderRadius: 16,
-    width: '100%',
-    maxWidth: 280,
+    width: '80%',
+    maxWidth: 300,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonDisabled: {
     backgroundColor: '#B0BEC5',
   },
+  buttonPressed: {
+    backgroundColor: '#357ABD',
+    transform: [{ scale: 0.98 }],
+  },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 8,

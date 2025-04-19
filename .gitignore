@@ -5,7 +5,7 @@ yarn-error.log
 package-lock.json
 yarn.lock
 
-# React Native önbellek ve geçici dosyalar
+# React Native ï¿½nbellek ve geï¿½ici dosyalar
 .rpt2_cache/
 *.tsbuildinfo
 *.log
@@ -16,7 +16,7 @@ yarn.lock
 # Metro Bundler
 .metro/
 
-# Ortam deðiþkenleri
+# Ortam deï¿½iï¿½kenleri
 .env
 .env.local
 .env.development.local
@@ -50,25 +50,25 @@ android/*.keystore
 *.ap_
 *.aab
 
-# Expo (eðer Expo kullanýyorsanýz)
+# Expo (eï¿½er Expo kullanï¿½yorsanï¿½z)
 .expo/
 web-build/
 dist/
 
-# Test dosyalarý
+# Test dosyalarï¿½
 coverage/
 *.testresult
 
-# Editör ve IDE dosyalarý
+# Editï¿½r ve IDE dosyalarï¿½
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# macOS dosyalarý
+# macOS dosyalarï¿½
 .DS_Store
 
-# Diðer geçici dosyalar
+# Diï¿½er geï¿½ici dosyalar
 tmp/
 temp/
 *.tmp
@@ -76,18 +76,18 @@ temp/
 *.swp
 *~
 
-# Derlenmiþ çýktýlar
+# Derlenmiï¿½ ï¿½ï¿½ktï¿½lar
 dist/
 build/
 
-# Medya dosyalarý
+# Medya dosyalarï¿½
 *.mp3
 *.mp4
 *.wav
 *.ogg
 *.aac
 *.m4a
-# Medya dosyalarýnýn bulunduðu yaygýn dizinler (örneðin, assets veya resources)
+# Medya dosyalarï¿½nï¿½n bulunduï¿½u yaygï¿½n dizinler (ï¿½rneï¿½in, assets veya resources)
 assets/*.mp3
 assets/*.mp4
 assets/*.wav

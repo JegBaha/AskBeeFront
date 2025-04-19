@@ -1,7 +1,11 @@
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+const icons = [
+  { name: 'child', image: require('/assets/child.png'), backgroundColor: '#FF6B6B' },
 
+];
 const menuItems = [
   {
     id: 'screen-time',
@@ -32,7 +36,7 @@ const menuItems = [
 
 export default function ParentDashboard() {
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={['#E0F7FA', '#F0F4F8']} style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.userInfo}>
@@ -41,13 +45,13 @@ export default function ParentDashboard() {
             </View>
             <View>
               <Text style={styles.welcomeText}>Ebeveyn Paneline Hoşgeldin</Text>
-              <Text style={styles.subText}>Haydi Miniğin neler yaptığına bir göz atalım</Text>
+              <Text style={styles.subText}>Miniğin neler yaptığına göz at!</Text>
             </View>
           </View>
           <Pressable 
             style={styles.closeButton}
             onPress={() => router.back()}>
-            <Ionicons name="close" size={24} color="#636E72" />
+            <Ionicons name="close" size={24} color="#FFF" />
           </Pressable>
         </View>
       </View>
@@ -55,7 +59,7 @@ export default function ParentDashboard() {
       <View style={styles.content}>
         <View style={styles.mascotContainer}>
           <Image
-            source={{ uri: '/assets/child.png' }}
+            source={icons.find(animal => animal.name === 'child').image}
             style={styles.mascotImage}
           />
         </View>
@@ -64,12 +68,18 @@ export default function ParentDashboard() {
           {menuItems.map((item) => (
             <Pressable
               key={item.id}
-              style={styles.menuItem}
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
               onPress={() => router.push(`/parent/${item.id}`)}>
-              <View style={styles.menuContent}>
+              <LinearGradient
+                colors={['#FFF', '#F0F4F8']}
+                style={styles.menuContent}>
+                <Ionicons name={item.icon} size={24} color="#4A90E2" style={styles.menuIcon} />
                 <Text style={styles.menuTitle}>{item.title}</Text>
                 <Ionicons name="chevron-forward" size={20} color="#4A90E2" />
-              </View>
+              </LinearGradient>
             </Pressable>
           ))}
         </View>
@@ -85,28 +95,24 @@ export default function ParentDashboard() {
           </Pressable>
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    padding: 16,
+    paddingTop: 48,
+    backgroundColor: '#4A90E2',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
     elevation: 5,
   },
   headerTop: {
@@ -117,110 +123,136 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4A90E2',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF6B6B',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatarText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: '#FFF',
+    fontSize: 22,
     fontWeight: 'bold',
   },
   welcomeText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D3436',
+    color: '#FFF',
+    lineHeight: 24,
   },
   subText: {
     fontSize: 14,
-    color: '#636E72',
-    marginTop: 2,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+    marginTop: 4,
   },
   closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
     flex: 1,
-    padding: 20,
-    alignItems:'center',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   mascotContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 20,
+    alignItems: 'center',
+    marginBottom: 24,
   },
   mascotImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E0F7FA',
+    borderWidth: 3,
+    borderColor: '#4A90E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   menuContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 8,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    width: '100%',
+    paddingVertical: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   menuItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
     borderRadius: 12,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  menuItemPressed: {
+    transform: [{ scale: 0.98 }],
   },
   menuContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  menuIcon: {
+    marginRight: 12,
   },
   menuTitle: {
     fontSize: 16,
+    fontWeight: '500',
     color: '#2D3436',
     flex: 1,
+    lineHeight: 22,
   },
   settingsSection: {
-    marginTop: 24,
+    marginTop: 28,
+    width: '100%',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2D3436',
     marginBottom: 12,
+    textAlign: 'left',
   },
   settingsButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   settingsText: {
     fontSize: 16,
+    fontWeight: '500',
     color: '#2D3436',
     marginLeft: 12,
     flex: 1,
+    lineHeight: 22,
   },
 });

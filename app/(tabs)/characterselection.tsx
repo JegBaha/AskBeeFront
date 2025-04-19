@@ -1,5 +1,7 @@
 import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 const animals = [
   { name: 'Tavşan', image: require('/assets/rabbit.png'), backgroundColor: '#FF6B6B' },
@@ -19,8 +21,12 @@ export default function CharacterSelection() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Lütfen Konuşmak İstediğin Hayvanı Seç</Text>
+    <LinearGradient
+      colors={['#E0F7FA', '#F0F4F8']}
+      style={styles.container}>
+      <Text style={styles.title}>
+        <Ionicons name="paw" size={28} color="#FF6B6B" /> Kankanı Seç!
+      </Text>
       <View style={styles.animalContainer}>
         {animals.map((animal, index) => (
           <Pressable
@@ -29,27 +35,30 @@ export default function CharacterSelection() {
             onPress={() => handleSelectAnimal(animal)}
           >
             <Image source={animal.image} style={styles.animalImage} />
+            <Text style={styles.animalName}>{animal.name}</Text>
           </Pressable>
         ))}
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#2D3436',
     marginBottom: 40,
     textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   animalContainer: {
     flexDirection: 'row',
@@ -58,15 +67,27 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   animalButton: {
-    width: 120,
-    height: 120,
+    width: 140,
+    height: 160,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   animalImage: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
+    marginBottom: 8,
+  },
+  animalName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textAlign: 'center',
   },
 });

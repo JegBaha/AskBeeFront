@@ -52,7 +52,7 @@ const activities = [
   },
 ];
 
-export default function HomeScreen() {
+export default function HomePage() {
   const [isParentMode, setIsParentMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [avatarImage, setAvatarImage] = useState(null);
