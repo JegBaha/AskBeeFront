@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
-const SERVER_URL = 'http://192.168.1.101:5000';
+const SERVER_URL = 'http://192.168.103.162:5000';
 
 export default function ChatScreen() {
   const { fromCamera, animalName, animalImage } = useLocalSearchParams<{
@@ -43,7 +43,8 @@ export default function ChatScreen() {
 
   const chatbotCharacter = {
     name: animalName || 'Arı',
-    image: animalImage ? JSON.parse(animalImage) : require('/assets/bee.png'),
+    // Use the video_feed endpoint for the GIF animation
+    image: `${SERVER_URL}/video_feed`,
   };
 
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean; image?: string }>>([
@@ -58,7 +59,7 @@ export default function ChatScreen() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraKey, setCameraKey] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // Yeni durum: Backend işleniyor
+  const [isProcessing, setIsProcessing] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const cameraRef = useRef<Camera>(null);
@@ -153,7 +154,7 @@ export default function ChatScreen() {
   };
 
   const stopRecording = async () => {
-    setIsProcessing(true); // Yükleniyor durumu başlat
+    setIsProcessing(true);
     try {
       console.log('Stopping recording...');
       if (!recording) {
@@ -183,7 +184,7 @@ export default function ChatScreen() {
       });
       console.log('FormData prepared for upload');
 
-      const response = await fetch(`${SERVER_URL}/transcribe`, {
+      const response = await fetch(`${SERVER_URL}/asr`, {
         method: 'POST',
         body: formData,
       });
@@ -192,7 +193,16 @@ export default function ChatScreen() {
 
       if (data.text) {
         const userMessage = { text: data.text, isUser: true };
-        const aiResponse = { text: data.response, isUser: false };
+        // Call /chat endpoint with transcribed text to get bot response
+        const chatResponse = await fetch(`${SERVER_URL}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: data.text }),
+        });
+        const chatData = await chatResponse.json();
+        const aiResponse = { text: chatData.response, isUser: false };
         setMessages(prev => [...prev, userMessage, aiResponse]);
       } else {
         console.error('Transcription error:', data.error);
@@ -218,12 +228,12 @@ export default function ChatScreen() {
     } finally {
       setRecording(null);
       setIsRecording(false);
-      setIsProcessing(false); // Yükleniyor durumu bitir
+      setIsProcessing(false);
     }
   };
 
   const handleMicrophoneToggle = () => {
-    if (isProcessing) return; // Yükleniyorsa tıklamayı engelle
+    if (isProcessing) return;
     if (isRecording) {
       stopRecording();
     } else {
@@ -375,7 +385,7 @@ export default function ChatScreen() {
 
       <View style={styles.videoContainer}>
         <View style={styles.mainVideo}>
-          <Image source={chatbotCharacter.image} style={styles.botVideo} />
+          <Image source={{ uri: chatbotCharacter.image }} style={styles.botVideo} />
         </View>
         {hasCameraPermission && isCameraActive && Platform.OS !== 'web' && typeof Camera === 'function' ? (
           <View style={styles.userVideo}>
@@ -690,4 +700,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-}); 
+});

@@ -186,10 +186,10 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profilim</Text>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Profilim</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -380,13 +380,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    left: 20,
+    right: 20, // Changed from left: 20 to right: 20
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFF',
     textAlign: 'center',
+    flex: 1, // Added to ensure title takes available space and centers
   },
   content: {
     flex: 1,
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E0E0E0 enterrr',
   },
   saveButton: {
     backgroundColor: '#4A90E2',
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
-    marginLeft: 8,
+    marginabbyLeft: 8,
   },
   statsContainer: {
     backgroundColor: '#F0F4F8',

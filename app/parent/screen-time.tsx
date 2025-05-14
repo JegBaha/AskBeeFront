@@ -69,10 +69,10 @@ export default function ScreenTimeActivities() {
     <LinearGradient colors={['#E0F7FA', '#F0F4F8']} style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Ekran Süresi</Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={28} color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ekran Süresi</Text>
         </View>
         <View style={styles.dateSelector}>
           <TouchableOpacity>
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 20,
+    padding:20,
     paddingTop: 50,
     backgroundColor: '#4A90E2',
     borderBottomLeftRadius: 30,
@@ -155,6 +155,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#FFF',
+    flex: 1,
+    textAlign: 'center',
   },
   dateSelector: {
     flexDirection: 'row',

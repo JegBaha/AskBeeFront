@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingScreen2 from './LoadingScreen2';
 
 const { width } = Dimensions.get('window');
 const animals = [
@@ -15,8 +16,8 @@ const animals = [
 ];
 const activities = [
   {
-    id: 'daily',
-    title: 'Günün Görevleri',
+    id: 'Daily',
+    title: 'Görevler',
     description: 'Bugünün özel aktiviteleri',
     color: '#FF9F43',
     gradient: ['#FFD180', '#FF9F43'],
@@ -33,9 +34,9 @@ const activities = [
     image: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&q=80',
   },
   {
-    id: 'discover',
-    title: 'Çevremizi Keşfedelim',
-    description: 'Yeni şeyler keşfet',
+    id: 'cartoonfilm',
+    title: 'Çizgi Film',
+    description: 'Kendi Çizgi Filmini Yarat',
     color: '#4A90E2',
     gradient: ['#80D8FF', '#4A90E2'],
     icon: 'search',
@@ -53,9 +54,18 @@ const activities = [
 ];
 
 export default function HomeScreen() {
+  const [isLoading, setIsLoading] = useState(true);
   const [isParentMode, setIsParentMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [avatarImage, setAvatarImage] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadAvatar = async () => {
     try {
@@ -94,6 +104,10 @@ export default function HomeScreen() {
     console.log('Home: Navigating to profile, current avatar URI:', avatarImage || 'null');
     router.push('/profile');
   };
+
+  if (isLoading) {
+    return <LoadingScreen2 />;
+  }
 
   return (
     <View style={styles.container}>

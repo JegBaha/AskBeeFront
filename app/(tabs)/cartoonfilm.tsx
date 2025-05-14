@@ -7,8 +7,8 @@ import { useRouter } from 'expo-router';
 
 const TOTAL_QUESTIONS = 4;
 
-// Örnek hikayeler (sonradan dinamik hale getirilebilir)
-const stories = [
+// Örnek çizgi filmler (sonradan dinamik hale getirilebilir)
+const cartoons = [
   { id: 1, title: "Sihirli Orman", date: "14.04.2025" },
   { id: 2, title: "Yıldızlı Gökyüzü", date: "14.04.2025" },
   { id: 3, title: "Cesur Tavşan", date: "14.04.2025" },
@@ -21,7 +21,7 @@ const stories = [
   { id: 10, title: "Büyülü Bahçe", date: "14.04.2025" },
 ].slice(0, 10);
 
-export default function CartoonScreen() {
+export default function CartoonFilmScreen() {
   const router = useRouter();
   const [phase, setPhase] = useState<'welcome' | 'question' | 'generating' | 'story'>('welcome');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -30,39 +30,20 @@ export default function CartoonScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
   const [storyData, setStoryData] = useState<{
-    storyText: string;
-    summaryAudio: string;
-    summaryText: string;
+    story: string;
+    images: string[];
+    summary_audio: string;
+    summary_text: string;
   } | null>(null);
-
-  // Base64 ses dosyasını oynatma
-  const playBase64Audio = async (base64Audio: string) => {
-    try {
-      const tempUri = `${FileSystem.cacheDirectory}temp_audio.wav`;
-      await FileSystem.writeAsStringAsync(tempUri, base64Audio, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const { sound } = await Audio.Sound.createAsync({ uri: tempUri });
-      await sound.playAsync();
-      sound.setOnPlaybackStatusUpdate(status => {
-        if (status.isLoaded && status.didJustFinish) {
-          sound.unloadAsync();
-          FileSystem.deleteAsync(tempUri).catch(() => {});
-        }
-      });
-    } catch (error) {
-      console.error('Ses oynatma hatası:', error);
-      Alert.alert('Hata', 'Ses dosyası oynatılamadı.');
-    }
-  };
 
   // Hoş geldin mesajını alma
   const fetchWelcomeMessage = async () => {
     try {
-      const response = await fetch('http://192.168.64.162:5000/api/welcome', { signal: AbortSignal.timeout(5000) });
+      const response = await fetch('http://192.168.64.162:5000/api/welcome-message', { signal: AbortSignal.timeout(5000) });
       const data = await response.json();
-      if (data.success && data.audio && data.text) {
-        await playBase64Audio(data.audio);
+      if (data.audio_url && data.text) {
+        const { sound } = await Audio.Sound.createAsync({ uri: data.audio_url });
+        await sound.playAsync();
         Alert.alert('Hoş Geldin!', data.text, [
           {
             text: 'Evet, başlayalım!',
@@ -74,7 +55,7 @@ export default function CartoonScreen() {
           { text: 'Hayır', style: 'cancel' },
         ]);
       } else {
-        throw new Error(data.error || 'Geçersiz yanıt');
+        throw new Error('Geçersiz yanıt');
       }
     } catch (error: any) {
       console.error('Karşılama mesajı hatası:', error);
@@ -87,13 +68,14 @@ export default function CartoonScreen() {
   // Soruyu alma
   const fetchQuestion = async (questionId: number) => {
     try {
-      const response = await fetch(`http://192.168.64.162:5000/api/question/${questionId}`, { signal: AbortSignal.timeout(5000) });
+      const response = await fetch(`http://192.168.64.162:5000/api/ask-question/${questionId}`, { signal: AbortSignal.timeout(5000) });
       const data = await response.json();
-      if (data.success && data.audio && data.text) {
-        await playBase64Audio(data.audio);
+      if (data.audio_url && data.text) {
+        const { sound } = await Audio.Sound.createAsync({ uri: data.audio_url });
+        await sound.playAsync();
         setCurrentQuestionText(data.text);
       } else {
-        throw new Error(data.error || 'Geçersiz yanıt');
+        throw new Error('Geçersiz yanıt');
       }
     } catch (error: any) {
       console.error('Soru alma hatası:', error);
@@ -101,47 +83,31 @@ export default function CartoonScreen() {
     }
   };
 
-  // Masal oluşturma ve özet alma
-  const generateStory = async (answers: string[]) => {
+  // Çizgi filmi oluşturma
+  const generateCartoon = async (answers: string[]) => {
     try {
       setPhase('generating');
       const [heroes, place, superpower, child] = answers;
-      const storyResponse = await fetch('http://192.168.64.162:5000/api/generate-story', {
+      const response = await fetch('http://192.168.64.162:5000/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ heroes, place, superpower, childName: child }),
-        signal: AbortSignal.timeout(30000),
+        body: JSON.stringify({ heroes, place, superpower, child }),
+        signal: AbortSignal.timeout(30000), // 30 saniye timeout
       });
-      const storyData = await storyResponse.json();
-      if (!storyData.success || !storyData.storyText) {
-        throw new Error(storyData.error || 'Masal oluşturulamadı');
+      const data = await response.json();
+      if (data.story && data.images && data.summary_audio) {
+        setStoryData(data);
+        setPhase('story');
+        const { sound } = await Audio.Sound.createAsync({ uri: data.summary_audio });
+        await sound.playAsync();
+      } else {
+        throw new Error('Geçersiz yanıt');
       }
-
-      const summaryResponse = await fetch('http://192.168.64.162:5000/api/summary', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ heroes, place, superpower, childName: child }),
-        signal: AbortSignal.timeout(10000),
-      });
-      const summaryData = await summaryResponse.json();
-      if (!summaryData.success || !summaryData.audio || !summaryData.text) {
-        throw new Error(summaryData.error || 'Özet alınamadı');
-      }
-
-      setStoryData({
-        storyText: storyData.storyText,
-        summaryAudio: summaryData.audio,
-        summaryText: summaryData.text,
-      });
-      setPhase('story');
-      await playBase64Audio(summaryData.audio);
     } catch (error: any) {
-      console.error('Masal oluşturma hatası:', error);
-      let errorMessage = 'Masal oluşturulamadı.';
+      console.error('Çizgi film oluşturma hatası:', error);
+      let errorMessage = 'Çizgi film oluşturulamadı.';
       if (error.name === 'TimeoutError') errorMessage = 'Bağlantı zaman aşımına uğradı.';
       Alert.alert('Hata', errorMessage);
       setPhase('question');
@@ -206,19 +172,18 @@ export default function CartoonScreen() {
         name: 'recording.m4a',
         type: 'audio/m4a',
       });
-      formData.append('questionId', currentQuestionIndex.toString());
 
-      const response = await fetch('http://192.168.64.162:5000/api/transcribe', {
+      const response = await fetch(`http://192.168.64.162:5000/api/record-answer/${currentQuestionIndex}`, {
         method: 'POST',
         body: formData,
         signal: AbortSignal.timeout(10000),
       });
       const data = await response.json();
-      if (data.success && data.transcript) {
+      if (data.transcribed_text) {
         setAnswers(prev => {
-          const newAnswers = [...prev, data.transcript];
+          const newAnswers = [...prev, data.transcribed_text];
           if (newAnswers.length === TOTAL_QUESTIONS) {
-            generateStory(newAnswers);
+            generateCartoon(newAnswers);
           } else {
             setCurrentQuestionIndex(newAnswers.length);
           }
@@ -241,13 +206,13 @@ export default function CartoonScreen() {
     }
   };
 
-  const renderStoryItem = ({ item }: { item: { id: number; title: string; date: string } }) => (
-    <View style={styles.storyItem}>
-      <View style={styles.storyTextContainer}>
-        <Text style={styles.storyTitle}>
-          <Ionicons name="book" size={16} color="#FF69B4" /> {item.title}
+  const renderCartoonItem = ({ item }: { item: { id: number; title: string; date: string } }) => (
+    <View style={styles.cartoonItem}>
+      <View style={styles.cartoonTextContainer}>
+        <Text style={styles.cartoonTitle}>
+          <Ionicons name="film" size={16} color="#FF69B4" /> {item.title}
         </Text>
-        <Text style={styles.storyDate}>{item.date} Macerası</Text>
+        <Text style={styles.cartoonDate}>{item.date} Macerası</Text>
       </View>
       <Pressable style={styles.playButton}>
         <Ionicons name="play" size={18} color="#FFF" />
@@ -260,22 +225,24 @@ export default function CartoonScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            <Ionicons name="sparkles" size={28} color="#FFD700" /> Kendi Masalını Yarat! <Ionicons name="sparkles" size={28} color="#FFD700" />
+            <Ionicons name="sparkles" size={28} color="#FFD700" /> Kendi Çizgi Filmini Yarat! <Ionicons name="sparkles" size={28} color="#FFD700" />
           </Text>
         </View>
         <View style={styles.contentContainer}>
-          <Text style={styles.loadingText}>Masalın hazırlanıyor... 🌟</Text>
+          <Text style={styles.loadingText}>Çizgi filmin hazırlanıyor... 🌟</Text>
         </View>
-        <View style={styles.storiesContainer}>
-          <Text style={styles.storiesHeader}>
-            <Ionicons name="library" size={20} color="#0288D1" /> Masal Koleksiyonum
+        <View style={styles.cartoonsContainer}>
+          <Text style={styles.cartoonsHeader}>
+            <Ionicons name="film" size={20} color="#0288D1" /> Çizgi Film Koleksiyonum
           </Text>
           <FlatList
-            data={stories}
-            renderItem={renderStoryItem}
+            data={cartoons}
+            renderItem={renderCartoonItem}
             keyExtractor={item => item.id.toString()}
-            style={styles.storiesList}
+            style={styles.cartoonsList}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
           />
         </View>
       </View>
@@ -287,29 +254,31 @@ export default function CartoonScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            <Ionicons name="sparkles" size={28} color="#FFD700" /> Kendi Masalını Yarat! <Ionicons name="sparkles" size={28} color="#FFD700" />
+            <Ionicons name="sparkles" size={28} color="#FFD700" /> Kendi Çizgi Filmini Yarat! <Ionicons name="sparkles" size={28} color="#FFD700" />
           </Text>
         </View>
         <View style={styles.contentContainer}>
-          <Text style={styles.storyTitle}>Masalın Hazır!</Text>
-          <Text style={styles.storyText}>{storyData.storyText}</Text>
-          <Pressable onPress={() => playBase64Audio(storyData.summaryAudio)} style={styles.playSummaryButton}>
-            <Text style={styles.playSummaryButtonText}>Özeti Dinle</Text>
-          </Pressable>
+          <Text style={styles.storyTitle}>Çizgi Filmin Hazır!</Text>
+          <Text style={styles.storyText}>{storyData.story}</Text>
+          {storyData.images.map((url, index) => (
+            <Image key={index} source={{ uri: url }} style={styles.storyImage} />
+          ))}
           <Pressable onPress={() => router.push('/(tabs)/index')} style={styles.backButton}>
             <Text style={styles.backButtonText}>Ana Sayfaya Dön</Text>
           </Pressable>
         </View>
-        <View style={styles.storiesContainer}>
-          <Text style={styles.storiesHeader}>
-            <Ionicons name="library" size={20} color="#0288D1" /> Masal Koleksiyonum
+        <View style={styles.cartoonsContainer}>
+          <Text style={styles.cartoonsHeader}>
+            <Ionicons name="film" size={20} color="#0288D1" /> Çizgi Film Koleksiyonum
           </Text>
           <FlatList
-            data={stories}
-            renderItem={renderStoryItem}
+            data={cartoons}
+            renderItem={renderCartoonItem}
             keyExtractor={item => item.id.toString()}
-            style={styles.storiesList}
+            style={styles.cartoonsList}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
           />
         </View>
       </View>
@@ -320,7 +289,7 @@ export default function CartoonScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          <Ionicons name="sparkles" size={28} color="#FFD700" /> Kendi Masalını Yarat! <Ionicons name="sparkles" size={28} color="#FFD700" />
+          <Ionicons name="sparkles" size={28} color="#FFD700" /> Kendi Çizgi Filmini Yarat! <Ionicons name="sparkles" size={28} color="#FFD700" />
         </Text>
       </View>
       {phase === 'question' && (
@@ -346,16 +315,18 @@ export default function CartoonScreen() {
           </View>
         </View>
       )}
-      <View style={styles.storiesContainer}>
-        <Text style={styles.storiesHeader}>
-          <Ionicons name="library" size={20} color="#0288D1" /> Masal Koleksiyonum
+      <View style={styles.cartoonsContainer}>
+        <Text style={styles.cartoonsHeader}>
+          <Ionicons name="film" size={20} color="#0288D1" /> Çizgi Film Koleksiyonum
         </Text>
         <FlatList
-          data={stories}
-          renderItem={renderStoryItem}
+          data={cartoons}
+          renderItem={renderCartoonItem}
           keyExtractor={item => item.id.toString()}
-          style={styles.storiesList}
+          style={styles.cartoonsList}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
         />
       </View>
     </View>
@@ -438,7 +409,7 @@ const styles = StyleSheet.create({
   micButtonRecording: {
     backgroundColor: '#D81B60',
   },
-  storiesContainer: {
+  cartoonsContainer: {
     backgroundColor: '#FFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -450,17 +421,17 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
-  storiesHeader: {
+  cartoonsHeader: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#0288D1',
     marginBottom: 10,
     textAlign: 'center',
   },
-  storiesList: {
+  cartoonsList: {
     flexGrow: 0,
   },
-  storyItem: {
+  cartoonItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -474,15 +445,15 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  storyTextContainer: {
+  cartoonTextContainer: {
     flex: 1,
   },
-  storyTitle: {
+  cartoonTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#0277BD',
   },
-  storyDate: {
+  cartoonDate: {
     fontSize: 12,
     color: '#4A5568',
   },
@@ -515,17 +486,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'justify',
   },
-  playSummaryButton: {
-    backgroundColor: '#0288D1',
-    padding: 15,
-    borderRadius: 10,
+  storyImage: {
+    width: 200,
+    height: 200,
+    marginVertical: 10,
     alignSelf: 'center',
-    marginBottom: 20,
-  },
-  playSummaryButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    borderRadius: 10,
   },
   backButton: {
     backgroundColor: '#4CAF50',

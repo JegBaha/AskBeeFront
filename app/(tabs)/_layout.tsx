@@ -46,6 +46,12 @@ export default function TabsLayout() {
           ),
         }}
       />
+       <Tabs.Screen
+        name="Daily"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="characterselection"
         options={{
@@ -55,7 +61,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="Settingsindex"
         options={{
           tabBarIcon: ({ color }) => (
             <Ionicons name="settings" size={26} color={color} />
@@ -83,7 +89,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="discover"
+        name="cartoonfilm"
+        options={{
+          href: null,
+        }}
+      />
+       <Tabs.Screen
+        name="profile"
         options={{
           href: null,
         }}
@@ -124,7 +136,19 @@ export default function TabsLayout() {
       }}
     />
     <Tabs.Screen
+      name="LoadingScreen2"
+      options={{
+        href: null,
+      }}
+    />
+    <Tabs.Screen
       name="NewAccount1"
+      options={{
+        href: null,
+      }}
+    />
+    <Tabs.Screen
+      name="TutorialPage"
       options={{
         href: null,
       }}
